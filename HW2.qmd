@@ -14,10 +14,54 @@ execute:
 
 ## Introduction
 
+The United States has a long history of racial segregation which is still visible. Redlining has had widely-documented consequences not only for community wealth, but also health. Redlined neighborhoods have less greenery and are hotter than other neighborhoods. A recent study found that redlining has not only affected the environments communities are exposed to, it has also shaped pedestrian safety outcomes decades later. As HOLC (Home Owners’ Loan Corporation) grades deteriorated from A (Best) to D (Hazardous), pedestrian fatality rates increased systematically. These findings highlight the need for targeted pedestrian infrastructure investments in historically redlined neighborhoods to address longstanding safety disparities. This analysis dives deeper into these findings. 
+
+I will be working with an unofficial version of data from the United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool. EJScreen provides environmental and demographic information for the US at the Census tract and block group levels. Additionally, I will be working with maps of HOLC grade designations for Los Angeles. Information on the data can be found. Lastly, I will be working with crash reports from 2020-2025. The Statewide Integrated Traffice Records System (SWITRS) database collects and processes data gathered from a collision scenes. 
+
+
 ## Reading in Packages and Data
 
 ```{r}
+# LOADING PACKAGES
+library(tidyverse)
+library(sf)
+library(here)
+library(tmap)
+library(tinytex)
 
+# READING IN THE DATA
+# Read in geodatabase of EJScreen data at the Census Block Group level
+ejscreen <- sf::st_read(here::here('data', 'ejscreen',
+    'EJSCREEN_2023_BG_StatePct_with_AS_CNMI_GU_VI.gdb')) 
+
+# Read in json file of HOLC data of block tracts in LA
+holc <- sf::st_read(here::here('data', 'mapping-inequality', 
+    'mapping-inequality-los-angeles.json'))
+
+# Read in csv of SWITRS data of bike and pedestrian crashes
+crashes <- read_csv('data/SWITRS_LA/Crashes.csv')
+
+# Filtering EJScreen to LA County
+# Filter to a state I'm interested in: CA
+california <- ejscreen %>%
+  dplyr::filter(ST_ABBREV == "CA") 
+
+# Filter to a county I'm interested in: LA
+la_ej <- ejscreen %>%
+  dplyr::filter(CNTY_NAME %in% c("Los Angeles County"))
+
+# Find the average values for all variables within counties
+california_counties <- aggregate(california, 
+    by = list(california$CNTY_NAME), FUN = mean)
+
+
+# Filtering crashes to only include point x and y (that aren't NA values)
+crashes <- crashes |>
+  dplyr::filter(!is.na(POINT_X), !is.na(POINT_Y)) |>
+  sf::st_as_sf(coords = c("POINT_X", "POINT_Y"), crs = 4326)
+
+# Transforming crashes to the same CRS as EJScreen data
+crashes <- sf::st_transform(crashes, crs = sf::st_crs(la_ej))
 ```
 
 
