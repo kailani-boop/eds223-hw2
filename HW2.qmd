@@ -18,8 +18,9 @@ The United States has a long history of racial segregation which is still visibl
 
 I will be working with an unofficial version of data from the United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool. EJScreen provides environmental and demographic information for the US at the Census tract and block group levels. Additionally, I will be working with maps of HOLC grade designations for Los Angeles. Information on the data can be found. Lastly, I will be working with crash reports from 2020-2025. The Statewide Integrated Traffice Records System (SWITRS) database collects and processes data gathered from a collision scenes. 
 
+## Part 1: Legacy of redlining in current environmental (in)justice
 
-## Reading in Packages and Data
+### Reading in Packages and Data
 
 ```{r}
 # LOADING PACKAGES
@@ -28,6 +29,8 @@ library(sf)
 library(here)
 library(tmap)
 library(tinytex)
+library(tidyterra)
+library(maptiles)
 
 # READING IN THE DATA
 # Read in geodatabase of EJScreen data at the Census Block Group level
@@ -65,25 +68,145 @@ crashes <- sf::st_transform(crashes, crs = sf::st_crs(la_ej))
 ```
 
 
-## Exploring the Data
+### Exploring the Data
+
+#### 1. Map of Historical Redlining Neighborhoods
+
+```{r}
+# Filter the NA values out of HOLC
+holc_graded <- dplyr::filter(holc, !is.na(grade))
+
+# Create a map of the HOLC grades in LA County
+# Add a basemap
+tm_basemap('OpenStreetMap') + 
+tm_shape(holc_graded) +  # Filtered data frame
+    tm_borders(fill = 'grade',  # Fill by the grade
+                fill.scale = tm_scale_categorical(  # Categorical scale
+                    values = c("A" = "#76a865", "B" = "#7cb5bd",  # Grade and colors
+                                "C" = "#ffd000", "D" = "#d9533c")), 
+                fill.legend = tm_legend(title = 'HOLC Grade'),  # Add a title to the legend
+                fill_alpha = 0.8) +
+tm_title('HOLC Grades in LA County') +  # Add a title to the map 
+tm_scalebar(position = c('RIGHT', 'TOP')) + 
+tm_compass()
+```
+
+write stuff
+
+
+#### 2. Summarization Table
+
+write stuff?
+
+```{r}
+# Transforming HOLC CRS to LA EJ CRS
+holc_graded <- sf::st_transform(holc_graded, crs = sf::st_crs(la_ej))
+st_crs(holc_graded) == st_crs(la_ej)
+```
+
+```{r}
+# Join the data frames together using st_within
+ej_holc_within <- st_join(la_ej, holc_graded, join = st_within, left = TRUE)
+```
+
+```{r}
+# Checking that the number of rows match
+nrow(la_ej)
+nrow(ej_holc_within)
+```
+
+```{r}
+# Since the number of rows match, a new data frame is created where the geometry is dropped
+ej_holc_df <- ej_holc_within |> 
+    st_drop_geometry()
+```
+
+```{r}
+# The summary of census blocks with each HOLC grade
+holc_summary <- ej_holc_df |> 
+    mutate(grade = tidyr::replace_na(grade, 'Not in the HOLC area')) |>  
+    # Replaced the NA value with something more descriptive
+    count(grade) |> 
+    mutate(percent = n / sum(n) * 100)
+```
+
+```{r}
+# Converting the summary to a table
+holc_summary |> 
+    knitr::kable(col.names = c('HOLC Grade', 'Count', 'Percent'), digits = 2)
+```
+
+write stuff
+
+#### 3. Visualizations
+
+```{r}
+# Visualization #1
+
+# Making a new variable for HOLC and PM2.5 percentile
+holc_pm25 <- ej_holc_df |> 
+    mutate(grade = tidyr::replace_na(grade, 'Not in the HOLC area')) |>  
+    # Replaced the NA value with something more descriptive
+    group_by(grade) |> 
+    summarise(pm25p_mean = mean(P_PM25, na.rm = TRUE))
+
+# Plotting it
+ggplot(holc_pm25, mapping = aes(x = grade, y = pm25p_mean, fill = grade)) + 
+    geom_col() + 
+    labs(title = 'Bar Graph of Mean PM2.5 Percentile by HOLC Grade', 
+        x = 'HOLC Grade', 
+        y = 'Mean PM2.5 Percentile'
+    ) + 
+    # Color-coding the bars to the same as the map above
+    scale_fill_manual(values = c("A" = "#76a865", "B" = "#7cb5bd",  
+                                "C" = "#ffd000", "D" = "#d9533c", 
+                                "Not in the HOLC area" = "gray70")) +
+    theme_bw() + 
+    # Getting rid of the legend because it has the same info as the x-axis
+    theme(legend.position = 'none')
+```
+
+write stuff
+
+```{r}
+# Visualization #2
+
+# Making a new variable for HOLC and PM2.5 percentile
+holc_lle <- ej_holc_df |> 
+    mutate(grade = tidyr::replace_na(grade, 'Not in the HOLC area')) |>  
+    # Replaced the NA value with something more descriptive
+    group_by(grade) |> 
+    summarise(llep_mean = mean(P_LIFEEXPPCT, na.rm = TRUE))
+
+# Plotting it
+ggplot(holc_lle, mapping = aes(x = grade, y = llep_mean, fill = grade)) + 
+    geom_col() + 
+    labs(title = 'Bar Graph of Mean Low Life Expectancy Percentile by HOLC Grade', 
+        x = 'HOLC Grade', 
+        y = 'Mean Low Life Expectancy Percentile'
+    ) + 
+    # Color-coding the bars to the same as the map above
+    scale_fill_manual(values = c("A" = "#76a865", "B" = "#7cb5bd",  
+                                "C" = "#ffd000", "D" = "#d9533c", 
+                                "Not in the HOLC area" = "gray70")) +
+    theme_bw() + 
+    # Getting rid of the legend because it has the same info as the x-axis
+    theme(legend.position = 'none')
+```
+
+write stuff
+
+
+#### 4. Reflection
+
+couple paragraph reflection
+
+
+## Part 2: Legacy of redlining in pedstrian and bike accidents
 
 ```{r}
 
 ```
 
 
-## Filtering 
-
-```{r}
-
-```
-
-
-## Maps
-
-```{r}
-
-```
-
-
-## Limitations
+### Limitations
