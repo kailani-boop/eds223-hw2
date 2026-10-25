@@ -16,7 +16,7 @@ execute:
 
 The United States has a long history of racial segregation which is still visible. Redlining has had widely-documented consequences not only for community wealth, but also health. Redlined neighborhoods have less greenery and are hotter than other neighborhoods. A recent study found that redlining has not only affected the environments communities are exposed to, it has also shaped pedestrian safety outcomes decades later. As HOLC (Home Owners’ Loan Corporation) grades deteriorated from A (Best) to D (Hazardous), pedestrian fatality rates increased systematically. These findings highlight the need for targeted pedestrian infrastructure investments in historically redlined neighborhoods to address longstanding safety disparities. This analysis dives deeper into these findings. 
 
-I will be working with an unofficial version of data from the United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool. EJScreen provides environmental and demographic information for the US at the Census tract and block group levels. Additionally, I will be working with maps of HOLC grade designations for Los Angeles. Information on the data can be found. Lastly, I will be working with crash reports from 2020-2025. The Statewide Integrated Traffice Records System (SWITRS) database collects and processes data gathered from a collision scenes. 
+I will be working with an unofficial version of data from the United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool. EJScreen provides environmental and demographic information for the US at the Census tract and block group levels. Additionally, I will be working with maps of HOLC grade designations for Los Angeles. A team of researchers, led by the Digital Scholarship Lab at the University of Richmond have digitized maps and information from the HOLC as part of the Mapping Inequality project. Lastly, I will be working with crash reports from 2020-2025. The Statewide Integrated Traffice Records System (SWITRS) database collects and processes data gathered from a collision scenes. 
 
 ## Part 1: Legacy of redlining in current environmental (in)justice
 
@@ -49,22 +49,9 @@ crashes <- read_csv('data/SWITRS_LA/Crashes.csv')
 california <- ejscreen %>%
   dplyr::filter(ST_ABBREV == "CA") 
 
-# Filter to a county I'm interested in: LA
+# Filter to LA county
 la_ej <- ejscreen %>%
   dplyr::filter(CNTY_NAME %in% c("Los Angeles County"))
-
-# Find the average values for all variables within counties
-california_counties <- aggregate(california, 
-    by = list(california$CNTY_NAME), FUN = mean)
-
-
-# Filtering crashes to only include point x and y (that aren't NA values)
-crashes <- crashes |>
-  dplyr::filter(!is.na(POINT_X), !is.na(POINT_Y)) |>
-  sf::st_as_sf(coords = c("POINT_X", "POINT_Y"), crs = 4326)
-
-# Transforming crashes to the same CRS as EJScreen data
-crashes <- sf::st_transform(crashes, crs = sf::st_crs(la_ej))
 ```
 
 
@@ -91,12 +78,12 @@ tm_scalebar(position = c('RIGHT', 'TOP')) +
 tm_compass()
 ```
 
-write stuff
+Above is a map of LA county that includes historical redlining neighborhoods. These neighborhoods are colored by HOLC grade. Grade A is green, B is blue, C is yellow, and D is red. Just by looking at the map, there appears to be a lot more yellow and red neighborhoods, which corresponds to C and D grades. Many of these neighborhoods also take up larger areas. The green and blue neighborhoods, which correspond to A and B grades, seem to occur less frequently and also take up smaller areas. Some of them are on the larger side, but the majority are quite small, in comparison to C and D graded neighborhoods. 
 
 
 #### 2. Summarization Table
 
-write stuff?
+Now that the different HOLC grades have been visualized on the map, it's also helpful to see the breakdown numerically. 
 
 ```{r}
 # Transforming HOLC CRS to LA EJ CRS
@@ -136,9 +123,11 @@ holc_summary |>
     knitr::kable(col.names = c('HOLC Grade', 'Count', 'Percent'), digits = 2)
 ```
 
-write stuff
+The majority of neighborhoods in LA County aren't included in the HOLC area. These account for 86.5% of LA County. This means that neighborhoods that historically were redlined account for 13.5% of LA County. Of this 13.5%, the most common grade is C at 7.7%. Then, it's grade D at 4.3%, grade B at 1.1%, and lastly, grade A at 0.2%. These percentages match the apparent color breakdown of the map from above. C and D grades appeared more common than A and B grades. The number of neighborhoods not in the HOLC area is 5,702. The number of neighborhoods that were in the HOLC area adds up to 889. 509 of these were grade C, 287 were grade D, 78 were grade B, and 15 were grade A. The count disparities between grades C and D and grades A and B are pretty large, by a magnitude of multiple hundreds. The count disparities between HOLC areas and non-HOLC areas are even larger, by a couple thousands (889 vs. 5702). 
 
 #### 3. Visualizations
+
+Another way to visualize the differences in disparities are through bar graphs and seeing how other variables compare or contrast with different HOLC grades. 
 
 ```{r}
 # Visualization #1
@@ -166,7 +155,7 @@ ggplot(holc_pm25, mapping = aes(x = grade, y = pm25p_mean, fill = grade)) +
     theme(legend.position = 'none')
 ```
 
-write stuff
+This first visualization, is a bar graph of the mean PM2.5 percentile organized by HOLC grades. There aren't noticeably large differences between the grades (and lack of a grade), however, there are some small differences. Grade D has the highest percentile (over 80%), which means that on average neighborhoods in grade D HOLC areas have higher PM2.5 concentration. The next highest is grade C, which is just over 80%. Next, is grade B, and that's just below 80%. Neighborhoods not in the HOLC areas have the second lowest mean PM2.5 percentile at just over 70%. Lastly, grade A has the smallest mean PM2.5 percentile, a little under 70%. According to this plot, neighborhoods with a HOLC grade of B, C, or D on average have higher PM2.5 concentrations. Neighborhoods without a HOLC grade or with a grade A, on average have smaller PM2.5 concentrations. Overall, there seems to be a relationship between more hazardous HOLC grades and average PM2.5 concentration, even if the differences are small. 
 
 ```{r}
 # Visualization #2
@@ -194,19 +183,114 @@ ggplot(holc_lle, mapping = aes(x = grade, y = llep_mean, fill = grade)) +
     theme(legend.position = 'none')
 ```
 
-write stuff
-
-
-#### 4. Reflection
-
-couple paragraph reflection
+The second visualization is a bar graph of the average low life expectancy percentile based on HOLC grades (or lack of). Compared to the first visualization, there are larger disparities between the grades. Again, the highest average low life expectancy percentile is grade D at about 60%. The second largest is grade C, just below 60%. More surprisingly, the third largest average low life expectancy percentile are neighborhoods not included in the HOLC area, around 45%. The smallest average low life expectancy percentile is grade A, which is just over 20%. Then, it's grade B, just above 40%. The difference between grade D and grade A average low life expectancy percentile is roughly 40%, a major disparity. In this plot, there appears to be a more clear divide between the grades. HOLC neighborhoods with a more "hazardous" grade tend to have a higher average low life expectancy percentile, while neighborhoods with a "better" grade tend to have a lower average low life expectancy percentile. Neighborhoods not included in the HOLC area land more in the middle of the two extremes. 
 
 
 ## Part 2: Legacy of redlining in pedstrian and bike accidents
 
 ```{r}
-
+# Checking the unique values of pedestrian and bicycle accidents
+unique(crashes$PEDESTRIAN_ACCIDENT)
+unique(crashes$BICYCLE_ACCIDENT)
+# Both either have NA or "Y"
 ```
 
+```{r}
+# Checking the number of NA values for point x or longitude
+sum(is.na(crashes$POINT_X)) # 9484
+sum(is.na(crashes$LONGITUDE)) # 97350
+# Longitude has a LOT more NA values, so I will use point x and y as the coordinate system
+```
 
-### Limitations
+```{r}
+# Filtering crashes to only include point x and y (that aren't NA values)
+crashes <- crashes |>
+  dplyr::filter(!is.na(POINT_X), !is.na(POINT_Y)) |>
+  sf::st_as_sf(coords = c("POINT_X", "POINT_Y"), crs = 4326)
+
+# Transforming crashes to the same CRS as EJScreen data
+crashes <- sf::st_transform(crashes, crs = sf::st_crs(la_ej))
+```
+
+```{r}
+# Making a new data frame with pedestrian or bike accidents
+bike_ped <- crashes |> 
+    filter(PEDESTRIAN_ACCIDENT == 'Y' | BICYCLE_ACCIDENT == 'Y')
+```
+
+```{r}
+# Looking at the unique value for each relevant column
+unique(bike_ped$NUMBER_KILLED)  # 0 1 2 3 4
+unique(bike_ped$COUNT_PED_KILLED)  # 0 1 2 4
+unique(bike_ped$COUNT_BICYCLIST_KILLED)  # 0 1 3
+unique(bike_ped$COLLISION_SEVERITY)  # 4 3 2 1
+```
+
+```{r}
+# Making a new data frame for pedestrian/bike fatalities
+# Filtering the bike/pedestrian data frame to only when there's a fatality
+bike_ped_fatal <- bike_ped |> 
+    mutate(fatal = COLLISION_SEVERITY == 1) 
+```
+
+```{r}
+# Joining biker/ped fatal data frame with my graded HOLC one from earlier
+crash_holc <- st_join(bike_ped_fatal, holc_graded)
+
+# Checking that the number of rows match
+nrow(crash_holc) == nrow(bike_ped_fatal)
+```
+
+```{r}
+# Making a summary table for crashes, fatalities, percentages of crashes and fatalities, and grade
+crash_summary <- crash_holc |>
+  st_drop_geometry() |>
+  filter(!is.na(grade)) |>
+  group_by(grade) |>
+  summarise(crashes = n(),
+            fatalities = sum(fatal == TRUE)) |>
+  mutate(pct_crashes = crashes / sum(crashes) * 100,
+         pct_fatalities = fatalities / sum(fatalities) * 100)
+```
+
+```{r}
+# Viewable table for the crash summary
+knitr::kable(crash_summary, col.names = c('HOLC Grade', 'Crashes', 'Fatalities', 
+                                          'Percent of Crashes', 'Percent of Fatalities'), 
+            digits = 2)
+```
+
+Above is a table that includes the HOLC grade, number of crashes, number of fatalities, percentage of crashes in that specific grade in comparison to all the grades, and the percentage of fatalities specific to that grade in comparison to all the grades. There's a clear discrepancy between the different grades. Grade C has the most amount of crashes, fatalities, and the highest percentages in both columns. Grade C's amount of fatalities and crashes make up 57% of all the grade's crashes and fatalities. The total amount of crashes is 9,026. Grade A's total number crashes is 360. That's a 8,666 difference between grade A and grade C. Grade C has 436 fatalities while grade A has 7 fatalities. A 429 difference. Grade D has the next highest values at 4,532 crashes, 233 fatalities, and percentages around 30%. Grade B has the third highest values at 1,782 crashes, 76 fatalities, and percentages around 10%. Grade A has the smallest amount of crashes and fatalities at 360 and 7 respectively. It's percentages are around 1%. The differences between the "better" grades (A and B) and "worse" grades (C and D) are vast. 
+
+```{r}
+# Pivoting the summary table to be longer so it can be plotted by crash type
+crash_long <- crash_summary |>
+    select(grade, pct_crashes, pct_fatalities) |>
+    pivot_longer(cols = c(pct_crashes, pct_fatalities), names_to = "Type", values_to = "Percent")
+
+# Plotting the pivoted crash summary
+ggplot(crash_long, aes(x = grade, y = Percent, fill = Type)) +
+    geom_col(position = "dodge") +
+    labs(title = 'Bike and Pedestrian Crashes and Fatalities by HOLC Grade', 
+        x = 'HOLC Grade', 
+        y = 'Percent'
+    ) + 
+    scale_fill_manual(name = "Crash Type",
+        values = c("pct_crashes" = "#3b221d", "pct_fatalities" = "#e64529"),
+        labels = c("pct_crashes" = "All crashes", "pct_fatalities" = "Fatal crashes")) +
+    theme_bw()
+```
+
+This bar plot shows the relationship between HOLC grade and the percentages of all crashes and fatal crashes of bicycles and pedestrians in LA County. From the above table, you could see that there was a clear difference between grades. This visualization makes the difference even clearer. Grade C has the highest percentage of all crashes and fatal crashes, while grade A has the smallest percentages. Grade D has the next highest percentages, then grade B. The dark color represents the percentage of all crashes in each grade when adding up all of the crashes in LA County within HOLC areas. The red color represents the percentage of fatal crashes in each grade when looking at all the fatal crashes in LA County within HOLC areas. The proportions of all crashes and fatal crashes per grade is very similar, suggesting that the rate of fatal crashes to all crashes remains the same throughout grades. The differences in heights is because of the amount of crashes within each grade. Overall, the grades that are more "hazardous" (C and D) have a higher percentage of bicycle and pedestrian crashes and fatalities in comparison to the "better" grades (A and B). 
+
+```{r}
+# Viewable table for the pivoted crash summary
+knitr::kable(crash_long, col.names = c('HOLC Grade', 'Crash Type', 'Percent'), digits = 2)
+```
+
+The table above shows the HOLC grade, crash type, and their respective percentages. In the crash type column, the values are "pct_crashes" and "pct_fatalities". The first one represents the percent of crashes in each grade when adding all the crashes in each grade together. The second one represents the percent of fatal crashes in each grade when adding all the crashes in each grade together. This orientation makes it easy to compare the percentages of all crashes versus fatal crashes within each grade. 
+
+
+## Reflection
+
+couple paragraph reflection
