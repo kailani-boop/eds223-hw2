@@ -1,5 +1,5 @@
 ---
-title: "EDS 223 HW 1"
+title: "EDS 223 HW 2"
 author: "Kailani Latimer"
 date: last-modified
 format: 
@@ -95,14 +95,16 @@ if (st_crs(holc_graded) != st_crs(la_ej)) {
 } 
 ```
 
-After the graded HOLC data frame was transformed, I joined the two of them together by using `st_within`. After the join, I check to see if the number of rows match, and therefore if the join was succesful. 
+After the graded HOLC data frame was transformed, I joined the two of them together by using `st_intersects`. After the join, I check to see if the number of rows match, and therefore if the join was succesful. 
 
 ```{r}
-# Join the data frames together using st_within
-ej_holc_within <- st_join(la_ej, holc_graded, join = st_within, left = TRUE)
+# Join the data frames together using st_intersects
+# largest = TRUE assigns each block group to the HOLC grade it overlaps most,
+# so block groups that straddle a boundary are still counted (unlike st_within)
+ej_holc_join <- st_join(la_ej, holc_graded, join = st_intersects, largest = TRUE, left = TRUE)
 
 # Checking that the number of rows match
-if (nrow(ej_holc_within) != nrow(la_ej)) {
+if (nrow(ej_holc_join) != nrow(la_ej)) {
   warning("Join created duplicate block groups. Check join method.")
 } else{
     print("All good")
@@ -113,7 +115,7 @@ The number of rows matched, so I made a new data frame and dropped the geometry 
 
 ```{r}
 # Since the number of rows match, a new data frame is created where the geometry is dropped
-ej_holc_df <- ej_holc_within |> 
+ej_holc_df <- ej_holc_join |> 
     st_drop_geometry()
 ```
 
@@ -145,7 +147,7 @@ holc_summary |>
     caption = 'Table of HOLC grade, the number of blocks in each grade, and the percent.')
 ```
 
-The majority of neighborhoods in LA County aren't included in the HOLC area. These account for 86.5% of LA County. This means that neighborhoods that historically were redlined account for 13.5% of LA County. Of this 13.5%, the most common grade is C at 7.7%. Then, it's grade D at 4.3%, grade B at 1.1%, and lastly, grade A at 0.2%. These percentages match the apparent color breakdown of the map from above. C and D grades appeared more common than A and B grades. The number of neighborhoods not in the HOLC area is 5,702. The number of neighborhoods that were in the HOLC area adds up to 889. 509 of these were grade C, 287 were grade D, 78 were grade B, and 15 were grade A. The count disparities between grades C and D and grades A and B are pretty large, by a magnitude of multiple hundreds. The count disparities between HOLC areas and non-HOLC areas are even larger, by a couple thousands (889 vs. 5702). 
+A large amount of neighborhoods in LA County aren't included in the HOLC area. These account for about 40% of LA County. This means that neighborhoods that historically were redlined account for about 60% of LA County. Of this 60%, the most common grade is C at 31.3%. Then, it's grade D at 14.5%, grade B at 10.1%, and lastly, grade A at 3.9%. These percentages match the apparent color breakdown of the map from above. C and D grades appeared more common than A and B grades, with a clear result that there's more yellow (grade C) on the map. The number of neighborhoods not in the HOLC area is 2,639. The number of neighborhoods that were in the HOLC area adds up to 3,952. 2,062 of these were grade C, 958 were grade D, 671 were grade B, and 261 were grade A. The count disparities between grades C and D and grades A and B are pretty large, by a magnitude of multiple hundreds. The count disparities between HOLC areas and non-HOLC areas are off by about one thousand (3,952 vs. 2,639). 
 
 #### 3. Visualizations
 
@@ -177,9 +179,9 @@ ggplot(holc_pm25, mapping = aes(x = grade, y = pm25p_mean, fill = grade)) +
     theme(legend.position = 'none')
 ```
 
-This first visualization, is a bar graph of the mean PM2.5 percentile organized by HOLC grades. There aren't noticeably large differences between the grades (and lack of a grade), however, there are some small differences. Grade D has the highest percentile (over 80%), which means that on average neighborhoods in grade D HOLC areas have higher PM2.5 concentration. The next highest is grade C, which is just over 80%. Next, is grade B, and that's just below 80%. Neighborhoods not in the HOLC areas have the second lowest mean PM2.5 percentile at just over 70%. Lastly, grade A has the smallest mean PM2.5 percentile, a little under 70%. According to this plot, neighborhoods with a HOLC grade of B, C, or D on average have higher PM2.5 concentrations. Neighborhoods without a HOLC grade or with a grade A, on average have smaller PM2.5 concentrations. Overall, there seems to be a relationship between more hazardous HOLC grades and average PM2.5 concentration, even if the differences are small. 
+This first visualization, is a bar graph of the mean PM2.5 percentile organized by HOLC grades. There aren't noticeably large differences between the grades (and lack of a grade), however, there are some small differences. Grade D has the highest percentile (about 80%), which means that on average neighborhoods in grade D HOLC areas have higher PM2.5 concentration. The next highest is grade C, which is just below 80%. Next, is grade B, and that's just above 75%. Neighborhoods not in the HOLC areas have the lowest mean PM2.5 percentile at just over 65%. Lastly, grade A has the second smallest mean PM2.5 percentile, a little above 70%. According to this plot, neighborhoods with a HOLC grade on average have higher PM2.5 concentrations. Neighborhoods without a HOLC grade, on average have smaller PM2.5 concentrations. Overall, there seems to be a relationship between more hazardous HOLC grades and average PM2.5 concentration, even if the differences are small. 
 
-This second visualization is a bar graph of the mean percent of low life expectancy by HOLC grade in LA County. Again, I made a new variable where I renamed the NA values with something more descriptive, and made a new column that was the mean of the low life expectancy percentiles. Then, I plotted it, as shown below.
+This second visualization is a bar graph of the mean percent of low life expectancy by HOLC grade in LA County. Again, I made a new variable where I renamed the `NA` values with something more descriptive, and made a new column that was the mean of the low life expectancy percentiles. Then, I plotted it, as shown below.
 
 ```{r}
 # Visualization #2
@@ -207,7 +209,7 @@ ggplot(holc_lle, mapping = aes(x = grade, y = llep_mean, fill = grade)) +
     theme(legend.position = 'none')
 ```
 
-The second visualization is a bar graph of the average low life expectancy percentile based on HOLC grades (or lack of). Compared to the first visualization, there are larger disparities between the grades. Again, the highest average low life expectancy percentile is grade D at about 60%. The second largest is grade C, just below 60%. More surprisingly, the third largest average low life expectancy percentile are neighborhoods not included in the HOLC area, around 45%. The smallest average low life expectancy percentile is grade A, which is just over 20%. Then, it's grade B, just above 40%. The difference between grade D and grade A average low life expectancy percentile is roughly 40%, a major disparity. In this plot, there appears to be a more clear divide between the grades. HOLC neighborhoods with a more "hazardous" grade tend to have a higher average low life expectancy percentile, while neighborhoods with a "better" grade tend to have a lower average low life expectancy percentile. Neighborhoods not included in the HOLC area land more in the middle of the two extremes. 
+The second visualization is a bar graph of the average low life expectancy percentile based on HOLC grades (or lack of). Compared to the first visualization, there are larger disparities between the grades. Again, the highest average low life expectancy percentile is grade D at about 55%. The second largest is grade C, just above 50%. More surprisingly, the third largest average low life expectancy percentile are neighborhoods not included in the HOLC area, around 45%. The smallest average low life expectancy percentile is grade A, which is just about 25%. Then, it's grade B, just below 40%. The difference between grade D and grade A average low life expectancy percentile is roughly 30%, a major disparity. In this plot, there appears to be a more clear divide between the grades. HOLC neighborhoods with a more "hazardous" grade tend to have a higher average low life expectancy percentile, while neighborhoods with a "better" grade tend to have a lower average low life expectancy percentile. Neighborhoods not included in the HOLC area land more in the middle of the two extremes. 
 
 This third and final visualization is a bar graph of the mean percent of low income people by HOLC grade in LA County. Again, I made a new variable where I renamed the NA values with something more descriptive, and made a new column that was the mean of the low income percentiles. Then, I plotted it, as shown below.
 
@@ -237,12 +239,12 @@ ggplot(holc_pli, mapping = aes(x = grade, y = pli_mean, fill = grade)) +
     theme(legend.position = 'none')
 ```
 
-This third visualization shows the mean percentage of low income people according to HOLC grade. There's a clear increase of percent from grade A to grade D, which also matches the progress from the "best" grade, A, to the most "hazardous" grade, D. The differences between grade D and grade A is about 20%. On average, 30% of the people in the neighborhoods outside of HOLC areas are considered to be low income. In comparison, grade D is at about 45%, grade C is at about 40%, grade B is at about 27%, and grade A is a little less than 20%. 
+This third visualization shows the mean percentage of low income people according to HOLC grade. There's a clear increase of percent from grade A to grade D, which also matches the progress from the "best" grade, A, to the most "hazardous" grade, D. The differences between grade D and grade A is about 25%. On average, a little more than 25% of the people in the neighborhoods outside of HOLC areas are considered to be low income. In comparison, grade D is at about 40%, grade C is at about 37%, grade B is at about 23%, and grade A is a little less than 15%. 
 
 
 ### Reflection
 
-Across all three visualizations, conditions get worse from grade A to grade D. For the PM2.5 visualization, grade D was just above 80%, while grade A was just below 70%. This is the smallest gap of the three, but there's still a gap. For the low life expectancy graph, there was a bigger gap. Grade D was at about 60% while grade A was just above 20%. This is the biggest gap, around 40%. Lastly, the percentage low income graph also had a noticeable gap. Grade D is around 45%, while grade A is a little shy of 20%. This gap is about 25%. Although the gap size differs, the pattern is still visible from "best" to "hazardous" grades. 
+Across all three visualizations, conditions get worse from grade A to grade D. For the PM2.5 visualization, grade D was about 80%, while grade A was just above 70%. This is the smallest gap of the three, but there's still a gap. For the low life expectancy graph, there was a bigger gap. Grade D was at about 55% while grade A was just below 25%. This is the biggest gap, around 30%. Lastly, the percentage low income graph also had a noticeable gap. Grade D is around 40%, while grade A is a little shy of 15%. This gap is about 25%. Although the gap size differs, the pattern is still visible from "best" to "hazardous" grades. 
 
 PM2.5 had a smaller gap because PM2.5 is a regional air pollution that spreads across neighborhoods. Therefore, the differences are smaller and not as noticeable. Life expectancy and income are more directly tied to neighborhood investment, wealth, and health care access, so they show bigger gaps. 
 
@@ -432,6 +434,6 @@ Some possible explanations for the large disparity between A/B grades and C/D gr
 
 ## Limitations
 
-There are a few limitations with my analysis. For my initial filtered HOLC data frame where I used `st_join`, I chose to join via `st_within`. This meant that if block groups straddled HOLC boundaries it was labeled as "Not in HOLC area". The function `st_within` only keeps blocks that are perfectly within the boundaries. Another limitation is that block-group aveages can hide differences between households (ecological fallacy). Additionally, crash counts weren't adjusted for population, traffic, or how many people walk or bike. Another limitation is that after filtering and joining, 9,484 crashes were dropped for missing coordinates. This big of a number could vastly change the distribution and numbers that I found. LA County is massive, and the HOLC maps only cover part of it. This could also throw off the proportions found. 
+There are a few limitations with my analysis. For my initial filtered HOLC data frame where I used `st_join`, I chose to join via `st_intersects`. This means that a block group that's only partly inside a HOLC area gets assigned the whole grade it overlaps most, which can blur the boundaries a bit. Another limitation is that block-group aveages can hide differences between households (ecological fallacy). Additionally, crash counts weren't adjusted for population, traffic, or how many people walk or bike. Another limitation is that after filtering and joining, 9,484 crashes were dropped for missing coordinates. This big of a number could vastly change the distribution and numbers that I found. LA County is massive, and the HOLC maps only cover part of it. This could also throw off the proportions found. 
 
 Based on my findings, I would suggest decision-makers invest in pedestrian and cyclist friendly infrastructure in areas historically labelled as grade C or D. Although, there's no "proof" of a difference, there is a strong pattern of "worse" grades and increased crashes. In addition to pedestrian safety, there should also be environmental health investments. The gap between grade A and D for the PM2.5 graph was small, but there was still a gap. Historically, grades C and D are around industrial, rail, and highways that emit a higher concentration of PM2.5. These areas air quality should be more closely monitored. 
