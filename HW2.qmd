@@ -16,7 +16,7 @@ execute:
 
 The United States has a long history of racial segregation which is still visible. Redlining has had widely-documented consequences not only for community wealth, but also health. Redlined neighborhoods have less greenery and are hotter than other neighborhoods. A recent study found that redlining has not only affected the environments communities are exposed to, it has also shaped pedestrian safety outcomes decades later. As HOLC (Home Owners’ Loan Corporation) grades deteriorated from A (Best) to D (Hazardous), pedestrian fatality rates increased systematically. These findings highlight the need for targeted pedestrian infrastructure investments in historically redlined neighborhoods to address longstanding safety disparities. This analysis dives deeper into these findings. 
 
-I will be working with an unofficial version of data from the United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool. EJScreen provides environmental and demographic information for the US at the Census tract and block group levels. Additionally, I will be working with maps of HOLC grade designations for Los Angeles. A team of researchers, led by the Digital Scholarship Lab at the University of Richmond have digitized maps and information from the HOLC as part of the Mapping Inequality project. Lastly, I will be working with crash reports from 2020-2025. The Statewide Integrated Traffice Records System (SWITRS) database collects and processes data gathered from a collision scenes. 
+I will be working with an unofficial version of data from the United States Environmental Protection Agency’s former EJScreen: Environmental Justice Screening and Mapping Tool. EJScreen provides environmental and demographic information for the US at the Census tract and block group levels. Additionally, I will be working with maps of HOLC grade designations for Los Angeles. A team of researchers, led by the Digital Scholarship Lab at the University of Richmond have digitized maps and information from the HOLC as part of the Mapping Inequality project. Lastly, I will be working with crash reports from 2020-2025. The Statewide Integrated Traffic Records System (SWITRS) database collects and processes data gathered from a collision scenes. 
 
 ## Part 1: Legacy of redlining in current environmental (in)justice
 
@@ -101,7 +101,11 @@ After the graded HOLC data frame was transformed, I joined the two of them toget
 # Join the data frames together using st_intersects
 # largest = TRUE assigns each block group to the HOLC grade it overlaps most,
 # so block groups that straddle a boundary are still counted (unlike st_within)
-ej_holc_join <- st_join(la_ej, holc_graded, join = st_intersects, largest = TRUE, left = TRUE)
+ej_holc_join <- st_join(la_ej, 
+                        holc_graded, 
+                        join = st_intersects, 
+                        largest = TRUE, 
+                        left = TRUE)
 
 # Checking that the number of rows match
 if (nrow(ej_holc_join) != nrow(la_ej)) {
@@ -186,7 +190,7 @@ This second visualization is a bar graph of the mean percent of low life expecta
 ```{r}
 # Visualization #2
 
-# Making a new variable for HOLC and PM2.5 percentile
+# Making a new variable for HOLC and Low Life Expectancy
 holc_lle <- ej_holc_df |> 
     mutate(grade = tidyr::replace_na(grade, 'Not in the HOLC area')) |>  
     # Replaced the NA value with something more descriptive
@@ -196,7 +200,7 @@ holc_lle <- ej_holc_df |>
 # Plotting it
 ggplot(holc_lle, mapping = aes(x = grade, y = llep_mean, fill = grade)) + 
     geom_col() + 
-    labs(title = 'Bar Graph of Mean Low Life Expectancy Percentile by HOLC Grade', 
+    labs(title = 'Bar Graph of Mean Low Life\nExpectancy Percentile by HOLC Grade', 
         x = 'HOLC Grade', 
         y = 'Mean (%) Low Life Expectancy'
     ) + 
@@ -209,7 +213,7 @@ ggplot(holc_lle, mapping = aes(x = grade, y = llep_mean, fill = grade)) +
     theme(legend.position = 'none')
 ```
 
-The second visualization is a bar graph of the average low life expectancy percentile based on HOLC grades (or lack of). Compared to the first visualization, there are larger disparities between the grades. Again, the highest average low life expectancy percentile is grade D at about 55%. The second largest is grade C, just above 50%. More surprisingly, the third largest average low life expectancy percentile are neighborhoods not included in the HOLC area, around 45%. The smallest average low life expectancy percentile is grade A, which is just about 25%. Then, it's grade B, just below 40%. The difference between grade D and grade A average low life expectancy percentile is roughly 30%, a major disparity. In this plot, there appears to be a more clear divide between the grades. HOLC neighborhoods with a more "hazardous" grade tend to have a higher average low life expectancy percentile, while neighborhoods with a "better" grade tend to have a lower average low life expectancy percentile. Neighborhoods not included in the HOLC area land more in the middle of the two extremes. 
+The second visualization is a bar graph of the average low life expectancy percentile based on HOLC grades (or lack of). Compared to the first visualization, there are larger disparities between the grades. Again, the highest average low life expectancy percentile is grade D at about 55%. The second largest is grade C, just above 50%. More surprisingly, the third largest average low life expectancy percentile are neighborhoods not included in the HOLC area, around 45%. The smallest average low life expectancy percentile is grade A, which is just below 25%. Then, it's grade B, just below 40%. The difference between grade D and grade A average low life expectancy percentile is roughly 30%, a major disparity. In this plot, there appears to be a more clear divide between the grades. HOLC neighborhoods with a more "hazardous" grade tend to have a higher average low life expectancy percentile, while neighborhoods with a "better" grade tend to have a lower average low life expectancy percentile. Neighborhoods not included in the HOLC area land more in the middle of the two extremes. 
 
 This third and final visualization is a bar graph of the mean percent of low income people by HOLC grade in LA County. Again, I made a new variable where I renamed the NA values with something more descriptive, and made a new column that was the mean of the low income percentiles. Then, I plotted it, as shown below.
 
@@ -250,13 +254,13 @@ PM2.5 had a smaller gap because PM2.5 is a regional air pollution that spreads a
 
 Redlining blocked home loans in C and D areas, which limited wealth building and led to disinvestment. Limited wealth building and disinvestment are connected to low income. Where there's more income, there's more wealth building and investment. Vice versa for when there's less income. Additionally, lower income often means more health risks and less access to care, which fits the life expectancy pattern. For the PM2.5 results, redlined areas were often near industry, rail, and later highways. 
 
-The "Not in HOLC area" acts as a baseline. It usually falls between A/B and C/D, so the formerly graded C and D areas aren't just average, they're worse than the rest of the county. These areas weren't apart of the historicaly redlined districts in LA County. 
+The "Not in HOLC area" acts as a baseline. It usually falls between A/B and C/D, so the formerly graded C and D areas aren't just average, they're worse than the rest of the county. These areas weren't a part of the historically redlined districts in LA County. 
 
 Although there appears to be patterns and relationships, these are just associations, not proof that redlining caused the differences. Statistical methods and more analysis is needed to more confidently claim causation. 
 
 
 
-## Part 2: Legacy of redlining in pedstrian and bike accidents
+## Part 2: Legacy of redlining in pedestrian and bike accidents
 
 To examine the relationship between pedestrian and bike accidents within the HOLC grades, I first looked at the unique values in the relevant columns of the crashes dataset. 
 
@@ -429,11 +433,11 @@ Redlined grades have worse environmental and socioeconomic conditions today, whi
 
 The fatal crash rate rises from about 1.9% in grade A to about 5.1% in grade D. That's roughly 2.6 times higher, which is similar to Taylor et al. study's finding that D areas had 2.6 times the pedestrian death rate of A areas. My analysis of LA County has similar findings to their nation-wide result. The two analyses measure different things, but there's a very similar pattern. The direction and size of the difference is consistent, however, I measured fatality per crash rather than per person. 
 
-Some possible explanations for the large disparity between A/B grades and C/D grades for crashes could be disinvestment in pedestrian infrastructure. This could include sidewalks, crosswalks, or lighting. Another explanantion could be wider and faster roads. This makes accidents more likely if people are driving faster, or if pedestrians/bicyclists have a wider road that they have to cross. One last explanation could be that people in lower-income areas walk or bike out of necessity rather than choice. Less people have access to cars, and so they're forced to have another solution to get to work or school. 
+Some possible explanations for the large disparity between A/B grades and C/D grades for crashes could be disinvestment in pedestrian infrastructure. This could include sidewalks, crosswalks, or lighting. Another explanation could be wider and faster roads. This makes accidents more likely if people are driving faster, or if pedestrians/bicyclists have a wider road that they have to cross. One last explanation could be that people in lower-income areas walk or bike out of necessity rather than choice. Less people have access to cars, and so they're forced to have another solution to get to work or school. 
 
 
 ## Limitations
 
-There are a few limitations with my analysis. For my initial filtered HOLC data frame where I used `st_join`, I chose to join via `st_intersects`. This means that a block group that's only partly inside a HOLC area gets assigned the whole grade it overlaps most, which can blur the boundaries a bit. Another limitation is that block-group aveages can hide differences between households (ecological fallacy). Additionally, crash counts weren't adjusted for population, traffic, or how many people walk or bike. Another limitation is that after filtering and joining, 9,484 crashes were dropped for missing coordinates. This big of a number could vastly change the distribution and numbers that I found. LA County is massive, and the HOLC maps only cover part of it. This could also throw off the proportions found. 
+There are a few limitations with my analysis. For my initial filtered HOLC data frame where I used `st_join`, I chose to join via `st_intersects`. This means that a block group that's only partly inside a HOLC area gets assigned the whole grade it overlaps most, which can blur the boundaries a bit. Another limitation is that block-group averages can hide differences between households (ecological fallacy). Additionally, crash counts weren't adjusted for population, traffic, or how many people walk or bike. Another limitation is that after filtering and joining, 9,484 crashes were dropped for missing coordinates. This big of a number could vastly change the distribution and numbers that I found. LA County is massive, and the HOLC maps only cover part of it. This could also throw off the proportions found. 
 
 Based on my findings, I would suggest decision-makers invest in pedestrian and cyclist friendly infrastructure in areas historically labelled as grade C or D. Although, there's no "proof" of a difference, there is a strong pattern of "worse" grades and increased crashes. In addition to pedestrian safety, there should also be environmental health investments. The gap between grade A and D for the PM2.5 graph was small, but there was still a gap. Historically, grades C and D are around industrial, rail, and highways that emit a higher concentration of PM2.5. These areas air quality should be more closely monitored. 
